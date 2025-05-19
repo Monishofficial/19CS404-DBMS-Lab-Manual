@@ -1,343 +1,267 @@
-# Experiment 5: Subqueries and Views
+# Experiment 8: PL/SQL Cursor Programs
 
 ## AIM
-To study and implement subqueries and views.
+To write and execute PL/SQL programs using cursors and exception handling to manage runtime errors effectively and display appropriate messages.
 
 ## THEORY
 
-### Subqueries
-A subquery is a query inside another SQL query and is embedded in:
-- WHERE clause
-- HAVING clause
-- FROM clause
+In PL/SQL, cursors are used to handle query result sets row-by-row. 
 
-**Types:**
-- **Single-row subquery**:
-  Sub queries can also return more than one value. Such results should be made use along with the operators in and any.
-- **Multiple-row subquery**:
-  Here more than one subquery is used. These multiple sub queries are combined by means of ‘and’ & ‘or’ keywords.
-- **Correlated subquery**:
-  A subquery is evaluated once for the entire parent statement whereas a correlated Sub query is evaluated once per row processed by the parent statement.
+There are two types of cursors:
 
-**Example:**
+- Implicit Cursors: Automatically created by PL/SQL for single-row queries.
+- Explicit Cursors: Declared and controlled by the programmer for multi-row queries.
+
+Types of Explicit Cursors:
+
+1. Simple Cursor: Basic cursor to iterate over multiple rows.
+
+2. Parameterized Cursor: Accepts parameters to filter the result dynamically.
+
+3. Cursor FOR Loop: Simplifies cursor operations (open, fetch, close).
+
+4. %ROWTYPE Cursor: Fetches entire row into a record using %ROWTYPE.
+
+5. Cursor with FOR UPDATE: Used for row-level locking and updating the rows while looping.
+
+**Syntax:**
 ```sql
-SELECT * FROM employees
-WHERE salary > (SELECT AVG(salary) FROM employees);
+DECLARE 
+   <declarations section> 
+BEGIN 
+   <executable command(s)>
+EXCEPTION 
+   <exception handling> 
+END;
 ```
-### Views
-A view is a virtual table based on the result of an SQL SELECT query.
-**Create View:**
+
+### Basic Components of PL/SQL Block:
+
+- DECLARE: Section to declare variables and constants.
+- BEGIN: The execution section that contains PL/SQL statements.
+- EXCEPTION: Handles errors or exceptions that occur in the program.
+- END: Marks the end of the PL/SQL block.
+
+**Exception Handling**
+
+PL/SQL provides a robust mechanism to handle runtime errors using exception handling blocks. When an error occurs during execution, control is passed to the EXCEPTION section, where specific or general errors can be handled gracefully.
+
+### Components of Exception Handling:
+- Predefined Exceptions: Automatically raised by PL/SQL for common errors (e.g., NO_DATA_FOUND, TOO_MANY_ROWS, ZERO_DIVIDE).
+- User-defined Exceptions: Declared explicitly in the declaration section using the EXCEPTION keyword.
+- WHEN OTHERS: A generic handler for all exceptions not handled explicitly.
+
 ```sql
-CREATE VIEW view_name AS
-SELECT column1, column2 FROM table_name WHERE condition;
-```
-**Drop View:**
-```sql
-DROP VIEW view_name;
-```
-
-**Question 1**
---
-Write a SQL query that retrieve all the columns from the table "Grades", where the grade is equal to the maximum grade achieved in each subject.
-Sample table: GRADES (attributes: student_id, student_name, subject, grade)
-
-```
-SELECT *
-FROM GRADES g
-WHERE grade = (
-    SELECT MAX(grade)
-    FROM GRADES
-    WHERE subject = g.subject
-);
-
+BEGIN
+   -- Statements
+EXCEPTION
+   WHEN exception_name THEN
+      -- Handling code
+   WHEN OTHERS THEN
+      -- Handling for unknown errors
+END;
 ```
 
-**Output:**
+### **Question 1: Simple Cursor with Exception Handling**
 
-![image](https://github.com/user-attachments/assets/d3d3c6be-b5b9-40e7-aed4-091d3c825e63)
+**Write a PL/SQL program using a simple cursor to fetch employee names and designations from the `employees` table. Implement exception handling for the following cases:**
 
+1. **NO_DATA_FOUND**: When no rows are fetched.
+2. **OTHERS**: Any other unexpected errors during execution.
 
-**Question 2**
+**Steps:**
+
+- Create an `employees` table with fields `emp_id`, `emp_name`, and `designation`.
+- Insert some sample data into the table.
+- Use a simple cursor to fetch and display employee names and designations.
+- Implement exception handling to catch the relevant exceptions and display appropriate messages.
+
+**Output:**  
+
+The program should display the employee details or an error message.
+![image](https://github.com/user-attachments/assets/309cc0ae-38e2-474f-b13b-61f8fd89ba1a)
+
 ---
-Write a SQL query to Identify customers whose city is different from the city of the customer with the highest ID
 
-SAMPLE TABLE: customer
+### **Question 2: Parameterized Cursor with Exception Handling**
+
+**Write a PL/SQL program using a parameterized cursor to retrieve and display employees with a salary in a given range. Implement exception handling for the following errors:**
+
+1. **NO_DATA_FOUND**: When no employees meet the salary criteria.
+2. **OTHERS**: For any unexpected errors during the execution.
+
+**Steps:**
+
+- Modify the `employees` table by adding a `salary` column.
+- Insert sample salary values for the employees.
+- Use a parameterized cursor to accept a salary range as input and fetch employees within that range.
+- Implement exception handling to catch and display relevant error messages.
+**Program:**
 ```
-name             type
----------------  ---------------
-id               INTEGER
-name             TEXT
-city             TEXT
-email            TEXT
-phone            INTEGER
+DECLARE
+   CURSOR sal_cursor(min_sal NUMBER, max_sal NUMBER) IS
+      SELECT emp_name, salary FROM employees WHERE salary BETWEEN min_sal AND max_sal;
+   v_name employees.emp_name%TYPE;
+   v_salary employees.salary%TYPE;
+   found BOOLEAN := FALSE;
+BEGIN
+   FOR rec IN sal_cursor(45000, 70000) LOOP
+      DBMS_OUTPUT.PUT_LINE('Name: ' || rec.emp_name || ', Salary: ' || rec.salary);
+      found := TRUE;
+   END LOOP;
+   IF NOT found THEN
+      RAISE NO_DATA_FOUND;
+   END IF;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employees in the given salary range.');
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Unexpected error: ' || SQLERRM);
+END;
 ```
-```
-SELECT *
-FROM customer
-WHERE city <> (
-    SELECT city
-    FROM customer
-    WHERE id = (SELECT MAX(id) FROM customer)
-);
+  
+**Output:**  
+The program should display the employee details within the specified salary range or an error message if no data is found.
 
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/91ff9e98-1f8d-4a62-877a-5cf34ee18ee4)
+![image](https://github.com/user-attachments/assets/5a310361-c353-4435-973f-c60771bc3bef)
 
 
-**Question 3**
 ---
-Write a SQL query to retrieve all columns from the CUSTOMERS table for customers whose salary is LESS than $2500.
 
-Sample table: CUSTOMERS
+### **Question 3: Cursor FOR Loop with Exception Handling**
+
+**Write a PL/SQL program using a cursor FOR loop to retrieve and display all employee names and their department numbers from the `employees` table. Implement exception handling for the following cases:**
+
+1. **NO_DATA_FOUND**: If no employees are found in the database.
+2. **OTHERS**: For any other unexpected errors.
+
+**Steps:**
+
+- Modify the `employees` table by adding a `dept_no` column.
+- Insert sample department numbers for employees.
+- Use a cursor FOR loop to fetch and display employee names along with their department numbers.
+- Implement exception handling to catch the relevant exceptions.
+
+**Program:**
 ```
-ID          NAME        AGE         ADDRESS     SALARY
-----------  ----------  ----------  ----------  ----------
-
-1          Ramesh     32              Ahmedabad     2000
-2          Khilan        25              Delhi                 1500
-3          Kaushik      23              Kota                  2000
-4          Chaitali       25             Mumbai            6500
-5          Hardik        27              Bhopal              8500
-6          Komal         22              Hyderabad       4500
-
-7           Muffy          24              Indore            10000
-
+DECLARE
+   found BOOLEAN := FALSE;
+BEGIN
+   FOR emp_rec IN (SELECT emp_name, dept_no FROM employees) LOOP
+      DBMS_OUTPUT.PUT_LINE('Name: ' || emp_rec.emp_name || ', Dept No: ' || emp_rec.dept_no);
+      found := TRUE;
+   END LOOP;
+   IF NOT found THEN
+      RAISE NO_DATA_FOUND;
+   END IF;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employees found.');
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Unexpected error: ' || SQLERRM);
+END;
 ```
-```
-SELECT *
-FROM CUSTOMERS
-WHERE SALARY < 2500;
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/5368fd05-45e9-44ce-98b9-755023b20def)
+**Output:**  
+The program should display employee names with their department numbers or the appropriate error message if no data is found.
 
 
-**Question 4**
+![image](https://github.com/user-attachments/assets/941a9de5-183d-4ae0-ae7e-51fd9e6956d7)
+
 ---
-From the following tables write a SQL query to count the number of customers with grades above the average in New York City. Return grade and count.
 
-customer table
+### **Question 4: Cursor with `%ROWTYPE` and Exception Handling**
+
+**Write a PL/SQL program that uses a cursor with `%ROWTYPE` to fetch and display complete employee records (emp_id, emp_name, designation, salary). Implement exception handling for the following errors:**
+
+1. **NO_DATA_FOUND**: When no employees are found in the database.
+2. **OTHERS**: For any other errors that occur.
+
+**Steps:**
+
+- Modify the `employees` table by adding `emp_id`, `emp_name`, `designation`, and `salary` fields.
+- Insert sample data into the `employees` table.
+- Declare a cursor using `%ROWTYPE` to fetch complete rows from the `employees` table.
+- Implement exception handling to catch the relevant exceptions and display appropriate messages.
+
+**Program:**
 ```
-name         type
------------  ----------
-customer_id  int
-cust_name    text
-city         text
-grade        int
-salesman_id  int
+DECLARE
+   CURSOR emp_cur IS SELECT * FROM employees;
+   emp_rec employees%ROWTYPE;
+   found BOOLEAN := FALSE;
+BEGIN
+   OPEN emp_cur;
+   LOOP
+      FETCH emp_cur INTO emp_rec;
+      EXIT WHEN emp_cur%NOTFOUND;
+      DBMS_OUTPUT.PUT_LINE('ID: ' || emp_rec.emp_id || ', Name: ' || emp_rec.emp_name ||
+                           ', Designation: ' || emp_rec.designation || ', Salary: ' || emp_rec.salary);
+      found := TRUE;
+   END LOOP;
+   CLOSE emp_cur;
+   IF NOT found THEN
+      RAISE NO_DATA_FOUND;
+   END IF;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employee data found.');
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
 ```
-```
-SELECT grade, COUNT(*)
-FROM customer
-WHERE  grade > (SELECT AVG(grade) FROM customer WHERE city = 'New York')
-GROUP BY grade;
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/5ee3faa5-16e7-4f66-aa1d-3be574da237b)
+**Output:**  
+The program should display employee records or the appropriate error message if no data is found.
 
 
-**Question 5**
+![image](https://github.com/user-attachments/assets/75c2057e-282e-40af-9abf-963cd54625a1)
+
 ---
-Write a SQL query to retrieve all columns from the CUSTOMERS table for customers whose Address as Delhi
 
-Sample table: CUSTOMERS
+### **Question 5: Cursor with FOR UPDATE Clause and Exception Handling**
+
+**Write a PL/SQL program using a cursor with the `FOR UPDATE` clause to update the salary of employees in a specific department. Implement exception handling for the following cases:**
+
+1. **NO_DATA_FOUND**: If no rows are affected by the update.
+2. **OTHERS**: For any unexpected errors during execution.
+
+**Steps:**
+
+- Modify the `employees` table to include a `dept_no` and `salary` field.
+- Insert sample data into the `employees` table with different department numbers.
+- Use a cursor with the `FOR UPDATE` clause to lock the rows of employees in a specific department and update their salary.
+- Implement exception handling to handle `NO_DATA_FOUND` or other errors that may occur.
+
+**Program:**
 ```
-ID          NAME        AGE         ADDRESS     SALARY
-----------  ----------  ----------  ----------  ----------
-
-1          Ramesh     32              Ahmedabad     2000
-2          Khilan        25              Delhi                 1500
-3          Kaushik      23              Kota                  2000
-4          Chaitali       25             Mumbai            6500
-5          Hardik        27              Bhopal              8500
-6          Komal         22              Hyderabad       4500
-
-7           Muffy          24              Indore            10000
+DECLARE
+   CURSOR emp_cur IS
+      SELECT emp_id, salary FROM employees WHERE dept_no = 10 FOR UPDATE;
+   v_found BOOLEAN := FALSE;
+BEGIN
+   FOR emp_rec IN emp_cur LOOP
+      UPDATE employees SET salary = emp_rec.salary + 1000 WHERE emp_id = emp_rec.emp_id;
+      DBMS_OUTPUT.PUT_LINE('Updated salary for emp_id: ' || emp_rec.emp_id);
+      v_found := TRUE;
+   END LOOP;
+   IF NOT v_found THEN
+      RAISE NO_DATA_FOUND;
+   END IF;
+   COMMIT;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employees found in department 10.');
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Error during update: ' || SQLERRM);
+END;
 ```
-```
-SELECT *
-FROM CUSTOMERS
-WHERE ADDRESS = 'Delhi';
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/80f9f243-907d-4aea-a337-6c50af79ea3f)
+**Output:**  
+The program should update employee salaries and display a message, or it should display an error message if no data is found.
 
 
-**Question 6**
+![image](https://github.com/user-attachments/assets/2656ed13-4cef-4a82-a7c9-e9892431f065)
+
 ---
-From the following tables write a SQL query to find the order values greater than the average order value of 10th October 2012. Return ord_no, purch_amt, ord_date, customer_id, salesman_id.
-
-Note: date should be yyyy-mm-dd format
-
-ORDERS TABLE
-```
-name            type
-----------     ----------
-ord_no          int
-purch_amt    real
-ord_date       text
-customer_id  int
-salesman_id  int
-```
-```
-SELECT ord_no, purch_amt, ord_date, customer_id, salesman_id
-FROM ORDERS
-WHERE purch_amt > (
-    SELECT AVG(purch_amt)
-    FROM ORDERS
-    WHERE ord_date = '2012-10-10'
-);
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/c430c51e-9b78-4f93-8466-421008a9ef22)
-
-
-**Question 7**
----
-From the following tables write a SQL query to find all orders generated by New York-based salespeople. Return ord_no, purch_amt, ord_date, customer_id, salesman_id.
-
-salesman table
-```
-name             type
----------------  ---------------
-salesman_id      numeric(5)
-name                 varchar(30)
-city                    varchar(15)
-commission       decimal(5,2)
-```
-orders table
-```
-name             type
----------------  --------
-order_no         int
-purch_amt        real
-order_date       text
-customer_id      int
-salesman_id      int
-```
-```
-SELECT o.ord_no, o.purch_amt, o.ord_date, o.customer_id, o.salesman_id
-FROM orders o
-JOIN salesman s ON o.salesman_id = s.salesman_id
-WHERE s.city = 'New York';
-
-```
-
-**Output:**
-![image](https://github.com/user-attachments/assets/2fc61d66-a2cb-4187-aae4-096d234335ec)
-
-**Question 8**
----
-From the following tables, write a SQL query to find those salespeople who earned the maximum commission. Return ord_no, purch_amt, ord_date, and salesman_id.
-
-salesman table
-```
-name             type
----------------  ---------------
-salesman_id      numeric(5)
-name                 varchar(30)
-city                    varchar(15)
-commission       decimal(5,2)
-```
-orders table
-```
-name             type
----------------  --------
-order_no         int
-purch_amt        real
-order_date       text
-customer_id      int
-salesman_id      int
-```
-```
-SELECT o.ord_no, o.purch_amt, o.ord_date, o.salesman_id
-FROM orders o
-JOIN salesman s ON o.salesman_id = s.salesman_id
-WHERE s.commission = (
-    SELECT MAX(commission)
-    FROM salesman
-);
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/d34c06f4-4485-45aa-a1df-f7d9401eec2b)
-
-
-**Question 9**
----
-From the following tables, write a SQL query to find all the orders generated in New York city. Return ord_no, purch_amt, ord_date, customer_id and salesman_id.
-
-SALESMAN TABLE
-```
-name               type
------------        ----------
-salesman_id  numeric(5)
-name             varchar(30)
-city                 varchar(15)
-commission   decimal(5,2)
-```
-ORDERS TABLE
-```
-name            type
-----------      ----------
-ord_no          int
-purch_amt    real
-ord_date       text
-customer_id  int
-salesman_id  int
-```
-```
-SELECT o.ord_no, o.purch_amt, o.ord_date, o.customer_id, o.salesman_id
-FROM orders o
-JOIN salesman s ON o.salesman_id = s.salesman_id
-WHERE s.city = 'New York';
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/52f55304-0cfd-4b75-bdb5-f6fe19e13f0b)
-
-**Question 10**
----
-Write a SQL query that retrieves the all the columns from the Table Grades, where the grade is equal to the minimum grade achieved in each subject.
-
-Sample table: GRADES (attributes: student_id, student_name, subject, grade)
-
-
-```
-SELECT student_id, student_name, subject, grade
-FROM Grades g
-WHERE grade = (
-    SELECT MIN(grade)
-    FROM Grades
-    WHERE subject = g.subject
-);
-
-```
-
-**Output:**
-
-![image](https://github.com/user-attachments/assets/d16e38c0-ec16-448e-b45b-fbb95ba9cba7)
-
-
 
 ## RESULT
-Thus, the SQL queries to implement subqueries and views have been executed successfully.
+Thus, the program successfully executed and displayed employee details using a cursor. 
+
